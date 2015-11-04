@@ -23,6 +23,8 @@ public class CanvasView extends View {
     private float mX, mY;
     private static final float TOLERANCE = 5;
 
+    Point[] a = new Point[10];
+
     public CanvasView(Context c, AttributeSet attrs) {
         super(c, attrs);
         context = c;
@@ -37,6 +39,9 @@ public class CanvasView extends View {
         mPaint.setStyle(Paint.Style.STROKE);
         mPaint.setStrokeJoin(Paint.Join.ROUND);
         mPaint.setStrokeWidth(4f);
+
+        for (int i=0;i<a.length;i++)
+            a[i] = new Point(i, i);
     }
 
     // override onSizeChanged
@@ -54,6 +59,7 @@ public class CanvasView extends View {
         if (width > h) {
             gridStep = h/10;
         }
+
     }
 
     // override onDraw
@@ -71,6 +77,17 @@ public class CanvasView extends View {
         for (int i=gridStep;i<height;i+=gridStep) {
             canvas.drawLine(0,i,width,i,mPaint);
         }
+
+        // and we set a new Paint with the desired attributes
+        Paint p = new Paint();
+        p.setAntiAlias(true);
+        p.setColor(Color.RED);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeJoin(Paint.Join.ROUND);
+        p.setStrokeWidth(4f);
+
+        for (int i=0;i<a.length;i++)
+        canvas.drawPoint(a[i].x*gridStep, a[i].y*gridStep, p);
 
         // draw the mPath with the mPaint on the canvas when onDraw
         canvas.drawPath(mPath, mPaint);
