@@ -9,6 +9,7 @@ import android.graphics.Path;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.os.Handler;
 
 public class CanvasView extends View {
     public int width;
@@ -23,7 +24,11 @@ public class CanvasView extends View {
     private float mX, mY;
     private static final float TOLERANCE = 5;
 
-    Point[] a = new Point[10];
+    private PointGroup pg;
+    private Point[] points;
+    private Point mouse;
+
+    private Handler handler = new Handler();
 
     public CanvasView(Context c, AttributeSet attrs) {
         super(c, attrs);
@@ -40,9 +45,29 @@ public class CanvasView extends View {
         mPaint.setStrokeJoin(Paint.Join.ROUND);
         mPaint.setStrokeWidth(4f);
 
-        for (int i=0;i<a.length;i++)
-            a[i] = new Point(i, i);
+        handler.postDelayed(runnable, 100);
     }
+
+    private Runnable runnable = new Runnable() {
+        @Override
+        public void run() {
+            if (mouse != null) {
+                if (mouse.down != null)
+                    mouse = mouse.down;
+                else if (mouse.right != null)
+                    mouse = mouse.right;
+                else if (mouse.up != null)
+                    mouse = mouse.up;
+                else if (mouse.left != null)
+                    mouse = mouse.left;
+
+                invalidate();
+            }
+
+            if (!mouse.end)
+                handler.postDelayed(this, 500);
+        }
+    };
 
     // override onSizeChanged
     @Override
@@ -60,12 +85,19 @@ public class CanvasView extends View {
             gridStep = h/10;
         }
 
+        pg = new PointGroup(0,0, width/gridStep, height/gridStep);
+        while (pg.addNextPoint());
+        points = pg.getAllPoints();
+        mouse = pg.getStartingPoint();
     }
 
     // override onDraw
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+
+        if (points == null)
+            return;
 
         /* clear background */
         canvas.drawARGB(0xff, 0x84, 0xde, 0xff);
@@ -84,10 +116,15 @@ public class CanvasView extends View {
         p.setColor(Color.RED);
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeJoin(Paint.Join.ROUND);
-        p.setStrokeWidth(4f);
+        p.setStrokeWidth(24f);
 
-        for (int i=0;i<a.length;i++)
-        canvas.drawPoint(a[i].x*gridStep, a[i].y*gridStep, p);
+        for (int i=0;i<points.length;i++)
+            canvas.drawPoint(points[i].x*gridStep, points[i].y*gridStep, p);
+
+        if (mouse != null) {
+            p.setColor(Color.YELLOW);
+            canvas.drawPoint(mouse.x * gridStep, mouse.y * gridStep, p);
+        }
 
         // draw the mPath with the mPaint on the canvas when onDraw
         canvas.drawPath(mPath, mPaint);
