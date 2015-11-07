@@ -161,12 +161,14 @@ public class CanvasView extends View {
         canvas.drawARGB(0xff, 0x84, 0xde, 0xff);
 
         /* draw grid lines */
+        /*
         for (int i=gridStep;i<width;i+=gridStep) {
             canvas.drawLine(i,0,i,height,mPaint);
         }
         for (int i=gridStep;i<height;i+=gridStep) {
             canvas.drawLine(0,i,width,i,mPaint);
         }
+        */
 
         // and we set a new Paint with the desired attributes
         Paint p = new Paint();
@@ -177,7 +179,26 @@ public class CanvasView extends View {
         p.setStrokeWidth(24f);
 
         for (int i=0;i<points.length;i++) {
-            if (points[i].mTarget) {
+            Point pt = points[i];
+            int x = pt.x * gridStep;
+            int y = pt.y * gridStep;
+
+            if (pt.left != null)
+                canvas.drawLine(x, y, x - gridStep, y,mPaint);
+            if (pt.right != null)
+                canvas.drawLine(x, y, x + gridStep, y,mPaint);
+            if (pt.up != null)
+                canvas.drawLine(x, y, x, y-gridStep,mPaint);
+            if (pt.down != null)
+                canvas.drawLine(x, y, x, y+gridStep,mPaint);
+        }
+
+        for (int i=0;i<points.length;i++) {
+            Point pt = points[i];
+            int x = pt.x * gridStep;
+            int y = pt.y * gridStep;
+
+            if (pt.mTarget) {
                 p.setStrokeWidth(35f);
                 p.setColor(Color.GREEN);
             } else {
@@ -185,7 +206,7 @@ public class CanvasView extends View {
                 p.setColor(Color.RED);
             }
 
-            canvas.drawPoint(points[i].x * gridStep, points[i].y * gridStep, p);
+            canvas.drawPoint(x, y, p);
         }
 
         if (mouse != null) {
