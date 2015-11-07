@@ -6,6 +6,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 public class MainActivity extends AppCompatActivity {
+    static final String DBG = "CALGO";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

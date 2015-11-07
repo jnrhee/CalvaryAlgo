@@ -27,7 +27,8 @@ public class CanvasView extends View {
     private PointGroup pg;
     private Point[] points;
     private Point mouse;
-
+    private int mouseDir = -1;
+    private boolean reInit = false;
     private Handler handler = new Handler();
 
     public CanvasView(Context c, AttributeSet attrs) {
@@ -48,26 +49,86 @@ public class CanvasView extends View {
         handler.postDelayed(runnable, 100);
     }
 
+    private void initMaze() {
+        pg = new PointGroup(0,0, width/gridStep, height/gridStep);
+        pg.addRandomPoints();
+        points = pg.getAllPoints();
+        mouse = pg.getStartingPoint();
+        mouseDir = -1;
+
+    }
+
     private Runnable runnable = new Runnable() {
         @Override
         public void run() {
-            if (mouse != null) {
-                if (mouse.down != null)
-                    mouse = mouse.down;
-                else if (mouse.right != null)
-                    mouse = mouse.right;
-                else if (mouse.up != null)
-                    mouse = mouse.up;
-                else if (mouse.left != null)
-                    mouse = mouse.left;
-
-                invalidate();
+            if (reInit) {
+                reInit = false;
+                initMaze();
             }
 
-            if (!mouse.end)
+            if (mouse != null) {
+                Point old = mouse;
+
+                // if can't go in the same direciton, move to the next random dir
+                boolean found = false;
+
+                int dir;
+                if (mouse.isEnd() == 1 && mouseDir != -1) {
+                    dir = PointGroup.getOppositeDir(mouseDir);
+                    tryMoveMouse(dir);
+                } else {
+                    do {
+                        dir = PointGroup.randomDir();
+                        if (!PointGroup.isOppositeDir(mouseDir, dir)) {
+                            found = tryMoveMouse(dir);
+                        }
+                    } while (!found);
+                }
+
+                mouseDir = dir;
+
+                invalidate();
+                if (!mouse.mTarget)
+                    handler.postDelayed(this, 100);
+                else {
+                    reInit = true;
+                    handler.postDelayed(this, 1000);
+                }
+            } else
                 handler.postDelayed(this, 500);
         }
     };
+
+    private boolean tryMoveMouse(int dir) {
+        switch (dir) {
+            case Point.UP:
+                if (mouse.up != null) {
+                    mouse = mouse.up;
+                    return true;
+                }
+                break;
+            case Point.DOWN:
+                if (mouse.down != null) {
+                    mouse = mouse.down;
+                    return true;
+                }
+                break;
+            case Point.LEFT:
+                if (mouse.left != null) {
+                    mouse = mouse.left;
+                    return true;
+                }
+                break;
+            case Point.RIGHT:
+                if (mouse.right != null) {
+                    mouse = mouse.right;
+                    return true;
+                }
+                break;
+        }
+
+        return false;
+    }
 
     // override onSizeChanged
     @Override
@@ -85,10 +146,7 @@ public class CanvasView extends View {
             gridStep = h/10;
         }
 
-        pg = new PointGroup(0,0, width/gridStep, height/gridStep);
-        while (pg.addNextPoint());
-        points = pg.getAllPoints();
-        mouse = pg.getStartingPoint();
+        initMaze();
     }
 
     // override onDraw
@@ -118,16 +176,24 @@ public class CanvasView extends View {
         p.setStrokeJoin(Paint.Join.ROUND);
         p.setStrokeWidth(24f);
 
-        for (int i=0;i<points.length;i++)
-            canvas.drawPoint(points[i].x*gridStep, points[i].y*gridStep, p);
+        for (int i=0;i<points.length;i++) {
+            if (points[i].mTarget) {
+                p.setStrokeWidth(35f);
+                p.setColor(Color.GREEN);
+            } else {
+                p.setStrokeWidth(24f);
+                p.setColor(Color.RED);
+            }
+
+            canvas.drawPoint(points[i].x * gridStep, points[i].y * gridStep, p);
+        }
 
         if (mouse != null) {
             p.setColor(Color.YELLOW);
             canvas.drawPoint(mouse.x * gridStep, mouse.y * gridStep, p);
         }
 
-        // draw the mPath with the mPaint on the canvas when onDraw
-        canvas.drawPath(mPath, mPaint);
+        //canvas.drawPath(mPath, mPaint);
     }
 
     // when ACTION_DOWN start touch according to the x,y values
