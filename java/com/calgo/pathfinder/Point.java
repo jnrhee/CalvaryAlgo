@@ -16,6 +16,7 @@ class Point{
     private int end;
 
     boolean mTarget;
+    private boolean isVisit;
 
     Point (int a, int b) {
         x = a;
@@ -23,6 +24,7 @@ class Point{
         left = right = up = down = null;
         end = -1;
         mTarget = false;
+        isVisit = false;
     }
 
     void tryToLinkTo(Point p) {
@@ -64,5 +66,13 @@ class Point{
         }
 
         return end;
+    }
+
+    void setVisit(boolean visit) {
+        isVisit = visit;
+    }
+
+    boolean getVisit() {
+        return isVisit;
     }
 }

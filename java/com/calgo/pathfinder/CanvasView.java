@@ -30,6 +30,7 @@ public class CanvasView extends View {
     private int mouseDir = -1;
     private boolean reInit = false;
     private Handler handler = new Handler();
+    private AlgoInterface pathAlgo;
 
     public CanvasView(Context c, AttributeSet attrs) {
         super(c, attrs);
@@ -56,6 +57,9 @@ public class CanvasView extends View {
         mouse = pg.getStartingPoint();
         mouseDir = -1;
 
+      pathAlgo = new DFSAlgo(mouse);
+ //        pathAlgo = new RandAlgo(mouse);
+
     }
 
     private Runnable runnable = new Runnable() {
@@ -67,28 +71,9 @@ public class CanvasView extends View {
             }
 
             if (mouse != null) {
-                Point old = mouse;
-
-                // if can't go in the same direciton, move to the next random dir
-                boolean found = false;
-
-                int dir;
-                if (mouse.isEnd() == 1 && mouseDir != -1) {
-                    dir = PointGroup.getOppositeDir(mouseDir);
-                    tryMoveMouse(dir);
-                } else {
-                    do {
-                        dir = PointGroup.randomDir();
-                        if (!PointGroup.isOppositeDir(mouseDir, dir)) {
-                            found = tryMoveMouse(dir);
-                        }
-                    } while (!found);
-                }
-
-                mouseDir = dir;
-
+                mouse = pathAlgo.getNextMove();
                 invalidate();
-                if (!mouse.mTarget)
+                if (!pathAlgo.isFound())
                     handler.postDelayed(this, 100);
                 else {
                     reInit = true;
@@ -99,36 +84,7 @@ public class CanvasView extends View {
         }
     };
 
-    private boolean tryMoveMouse(int dir) {
-        switch (dir) {
-            case Point.UP:
-                if (mouse.up != null) {
-                    mouse = mouse.up;
-                    return true;
-                }
-                break;
-            case Point.DOWN:
-                if (mouse.down != null) {
-                    mouse = mouse.down;
-                    return true;
-                }
-                break;
-            case Point.LEFT:
-                if (mouse.left != null) {
-                    mouse = mouse.left;
-                    return true;
-                }
-                break;
-            case Point.RIGHT:
-                if (mouse.right != null) {
-                    mouse = mouse.right;
-                    return true;
-                }
-                break;
-        }
 
-        return false;
-    }
 
     // override onSizeChanged
     @Override
