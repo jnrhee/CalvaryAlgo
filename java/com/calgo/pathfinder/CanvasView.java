@@ -12,12 +12,25 @@ import android.view.MotionEvent;
 import android.view.View;
 
 public class CanvasView extends View {
+    /*
+     * ALGO TESTING
+
+    static final int MOUSE_STEP_IN_MS_INIT = 33;
+    static final int GRID_STEP_DIV = 40;
+    static final boolean MOUSE_CENTER = true;
+    static final int VP_SCALE = 1;
+    */
+
     static final int MOUSE_STEP_IN_MS_INIT = 500;
+    static final int GRID_STEP_DIV = 20;
     static final boolean MOUSE_CENTER = false;
     static final int VP_SCALE = 4;
-    static final float MOUSE_OVAL_SIZE = 20f*VP_SCALE/2;
-    static final float POINT_OVAL_SIZE = 14f*VP_SCALE/2;
-    static final float TARGET_OVAL_SIZE = 24f*VP_SCALE/2;
+    /**/
+
+    static final float SFACTOR = (float)40/GRID_STEP_DIV;
+    static final float MOUSE_OVAL_SIZE = 10f*((float)1+SFACTOR*(float)Math.log((float)VP_SCALE));
+    static final float POINT_OVAL_SIZE = 7f*((float)1+SFACTOR*(float)Math.log((float)VP_SCALE));
+    static final float TARGET_OVAL_SIZE = 12f*((float)1+SFACTOR*(float)Math.log((float)VP_SCALE));
 
     public int width;
     public int height;
@@ -175,9 +188,9 @@ public class CanvasView extends View {
         width = w;
         height = h;
 
-        gridStep = width/20;
+        gridStep = width/GRID_STEP_DIV;
         if (width > h) {
-            gridStep = h/20;
+            gridStep = h/GRID_STEP_DIV;
         }
 
         mouse_step_in_ms = MOUSE_STEP_IN_MS_INIT;
