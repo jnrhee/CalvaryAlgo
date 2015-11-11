@@ -12,6 +12,12 @@ import android.view.View;
 import android.os.Handler;
 
 public class CanvasView extends View {
+    static final float MOUSE_OVAL_SIZE = 20f;
+    static final float POINT_OVAL_SIZE = 14f;
+    static final float TARGET_OVAL_SIZE = 24f;
+
+    static final int MOUSE_STEP_IN_MS = 100;
+
     public int width;
     public int height;
     Context context;
@@ -20,13 +26,17 @@ public class CanvasView extends View {
     private Bitmap mBitmap;
     private Canvas mCanvas;
     private Path mPath;
-    private Paint mPaint;
+    private Paint linePaint;
     private float mX, mY;
     private static final float TOLERANCE = 5;
 
     private PointGroup pg;
     private Point[] points;
     private Point mouse;
+    private Paint mousePaint;
+    private Paint pointPaint;
+    private Paint targetPaint;
+
     private int mouseDir = -1;
     private boolean reInit = false;
     private Handler handler = new Handler();
@@ -40,12 +50,27 @@ public class CanvasView extends View {
         mPath = new Path();
 
         // and we set a new Paint with the desired attributes
-        mPaint = new Paint();
-        mPaint.setAntiAlias(true);
-        mPaint.setColor(Color.WHITE);
-        mPaint.setStyle(Paint.Style.STROKE);
-        mPaint.setStrokeJoin(Paint.Join.ROUND);
-        mPaint.setStrokeWidth(4f);
+        linePaint = new Paint();
+        linePaint.setAntiAlias(true);
+        linePaint.setColor(Color.WHITE);
+        linePaint.setStyle(Paint.Style.STROKE);
+        linePaint.setStrokeJoin(Paint.Join.ROUND);
+        linePaint.setStrokeWidth(4f);
+
+        pointPaint = new Paint();
+        pointPaint.setAntiAlias(true);
+        pointPaint.setColor(Color.WHITE);
+        pointPaint.setStyle(Paint.Style.FILL);
+
+        targetPaint = new Paint();
+        targetPaint.setAntiAlias(true);
+        targetPaint.setColor(Color.RED);
+        targetPaint.setStyle(Paint.Style.FILL);
+
+        mousePaint = new Paint();
+        mousePaint.setAntiAlias(true);
+        mousePaint.setColor(Color.YELLOW);
+        mousePaint.setStyle(Paint.Style.FILL);
 
         handler.postDelayed(runnable, 100);
     }
@@ -74,7 +99,7 @@ public class CanvasView extends View {
                 mouse = pathAlgo.getNextMove();
                 invalidate();
                 if (!pathAlgo.isFound())
-                    handler.postDelayed(this, 100);
+                    handler.postDelayed(this, MOUSE_STEP_IN_MS);
                 else {
                     reInit = true;
                     handler.postDelayed(this, 1000);
@@ -97,9 +122,9 @@ public class CanvasView extends View {
         width = w;
         height = h;
 
-        gridStep = width/10;
+        gridStep = width/20;
         if (width > h) {
-            gridStep = h/10;
+            gridStep = h/20;
         }
 
         initMaze();
@@ -119,34 +144,26 @@ public class CanvasView extends View {
         /* draw grid lines */
         /*
         for (int i=gridStep;i<width;i+=gridStep) {
-            canvas.drawLine(i,0,i,height,mPaint);
+            canvas.drawLine(i,0,i,height,linePaint);
         }
         for (int i=gridStep;i<height;i+=gridStep) {
-            canvas.drawLine(0,i,width,i,mPaint);
+            canvas.drawLine(0,i,width,i,linePaint);
         }
         */
-
-        // and we set a new Paint with the desired attributes
-        Paint p = new Paint();
-        p.setAntiAlias(true);
-        p.setColor(Color.RED);
-        p.setStyle(Paint.Style.STROKE);
-        p.setStrokeJoin(Paint.Join.ROUND);
-        p.setStrokeWidth(24f);
-
+        
         for (int i=0;i<points.length;i++) {
             Point pt = points[i];
             int x = pt.x * gridStep;
             int y = pt.y * gridStep;
 
             if (pt.left != null)
-                canvas.drawLine(x, y, x - gridStep, y,mPaint);
+                canvas.drawLine(x, y, x - gridStep, y,linePaint);
             if (pt.right != null)
-                canvas.drawLine(x, y, x + gridStep, y,mPaint);
+                canvas.drawLine(x, y, x + gridStep, y,linePaint);
             if (pt.up != null)
-                canvas.drawLine(x, y, x, y-gridStep,mPaint);
+                canvas.drawLine(x, y, x, y-gridStep,linePaint);
             if (pt.down != null)
-                canvas.drawLine(x, y, x, y+gridStep,mPaint);
+                canvas.drawLine(x, y, x, y+gridStep,linePaint);
         }
 
         for (int i=0;i<points.length;i++) {
@@ -154,23 +171,22 @@ public class CanvasView extends View {
             int x = pt.x * gridStep;
             int y = pt.y * gridStep;
 
+            Paint p = null;
+            float ov_size = 0;
             if (pt.mTarget) {
-                p.setStrokeWidth(35f);
-                p.setColor(Color.GREEN);
+                p = targetPaint;
+                ov_size = TARGET_OVAL_SIZE;
             } else {
-                p.setStrokeWidth(24f);
-                p.setColor(Color.RED);
+                p = pointPaint;
+                ov_size = POINT_OVAL_SIZE;
             }
 
-            canvas.drawPoint(x, y, p);
+            canvas.drawCircle(x, y, ov_size, p);
         }
 
         if (mouse != null) {
-            p.setColor(Color.YELLOW);
-            canvas.drawPoint(mouse.x * gridStep, mouse.y * gridStep, p);
+            canvas.drawCircle(mouse.x * gridStep, mouse.y * gridStep, MOUSE_OVAL_SIZE, mousePaint);
         }
-
-        //canvas.drawPath(mPath, mPaint);
     }
 
     // when ACTION_DOWN start touch according to the x,y values

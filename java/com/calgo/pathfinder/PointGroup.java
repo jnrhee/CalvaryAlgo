@@ -54,15 +54,22 @@ class PointGroup {
         }
 
         Point[] pts = mAl.toArray(new Point[mAl.size()]);
+        Point startPt = mAl.get(0);
+        Point endPt = null;
 
         for (int i=0;i<mAl.size()-1;i++) {
             Point p = pts[i];
             for (int j = i+1; j < mAl.size(); j++) {
                 p.tryToLinkTo(pts[j]);
             }
-            if (i == mAl.size()-2)
-                p.mTarget = true;
+
+            if (endPt == null)
+                endPt = p;
+            else if (p.distanceFrom(startPt) > endPt.distanceFrom(startPt))
+                endPt = p;
         }
+
+        endPt.mTarget = true;
     }
 
     static boolean isOppositeDir(int d1, int d2) {

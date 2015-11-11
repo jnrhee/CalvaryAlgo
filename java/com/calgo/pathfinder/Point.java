@@ -68,6 +68,13 @@ class Point{
         return end;
     }
 
+    double distanceFrom(Point p) {
+        int xdist = Math.abs(x - p.x);
+        int ydist = Math.abs(y - p.y);
+
+        return Math.sqrt(xdist*xdist + ydist*ydist);
+    }
+
     void setVisit(boolean visit) {
         isVisit = visit;
     }
