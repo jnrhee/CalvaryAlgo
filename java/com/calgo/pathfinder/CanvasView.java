@@ -12,9 +12,10 @@ import android.view.MotionEvent;
 import android.view.View;
 
 public class CanvasView extends View {
-    static final float MOUSE_OVAL_SIZE = 20f;
-    static final float POINT_OVAL_SIZE = 14f;
-    static final float TARGET_OVAL_SIZE = 24f;
+    static final int VP_SCALE = 5;
+    static final float MOUSE_OVAL_SIZE = 20f*VP_SCALE/2;
+    static final float POINT_OVAL_SIZE = 14f*VP_SCALE/2;
+    static final float TARGET_OVAL_SIZE = 24f*VP_SCALE/2;
 
     static final int MOUSE_STEP_IN_MS = 100;
 
@@ -149,6 +150,13 @@ public class CanvasView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
+        int scale = VP_SCALE;
+        int viewStep = gridStep*scale;
+        int mx = width/2;
+        int my = height/2;
+        int dx = (mx - mouse.x * viewStep);
+        int dy = (my - mouse.y * viewStep);
+
         if (points == null)
             return;
 
@@ -171,27 +179,27 @@ public class CanvasView extends View {
         p1p.setColor(Color.RED);
         p1p.setStyle(Paint.Style.STROKE);
         p1p.setStrokeJoin(Paint.Join.ROUND);
-        p1p.setStrokeWidth(35f);
+        p1p.setStrokeWidth(35f*scale/2);
 
         for (int i=0;i<points.length;i++) {
             Point pt = points[i];
-            int x = pt.x * gridStep;
-            int y = pt.y * gridStep;
+            int x = pt.x * viewStep+dx;
+            int y = pt.y * viewStep+dy;
 
             if (pt.left != null)
-                canvas.drawLine(x, y, x - gridStep, y,linePaint);
+                canvas.drawLine(x, y, x - viewStep, y,linePaint);
             if (pt.right != null)
-                canvas.drawLine(x, y, x + gridStep, y,linePaint);
+                canvas.drawLine(x, y, x + viewStep, y,linePaint);
             if (pt.up != null)
-                canvas.drawLine(x, y, x, y-gridStep,linePaint);
+                canvas.drawLine(x, y, x, y-viewStep,linePaint);
             if (pt.down != null)
-                canvas.drawLine(x, y, x, y+gridStep,linePaint);
+                canvas.drawLine(x, y, x, y+viewStep,linePaint);
         }
 
         for (int i=0;i<points.length;i++) {
             Point pt = points[i];
-            int x = pt.x * gridStep;
-            int y = pt.y * gridStep;
+            int x = pt.x * viewStep+dx;
+            int y = pt.y * viewStep+dy;
 
             Paint p = null;
             float ov_size = 0;
@@ -207,12 +215,12 @@ public class CanvasView extends View {
         }
 
         if (mouse != null) {
-            canvas.drawCircle(mouse.x * gridStep, mouse.y * gridStep, MOUSE_OVAL_SIZE, mousePaint);
+            canvas.drawCircle(mx, my, MOUSE_OVAL_SIZE, mousePaint);
         }
 
         if (p1 != null) {
             p1p.setColor(Color.BLUE);
-            canvas.drawPoint(p1.x * gridStep, p1.y * gridStep, p1p);
+            canvas.drawPoint(p1.x * viewStep+dx, p1.y * viewStep+dy, p1p);
         }
     }
 
