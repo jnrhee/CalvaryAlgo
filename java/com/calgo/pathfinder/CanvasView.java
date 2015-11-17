@@ -12,11 +12,25 @@ import android.view.MotionEvent;
 import android.view.View;
 
 public class CanvasView extends View {
-    static final float MOUSE_OVAL_SIZE = 20f;
-    static final float POINT_OVAL_SIZE = 14f;
-    static final float TARGET_OVAL_SIZE = 24f;
+    /*
+     * ALGO TESTING
 
-    static final int MOUSE_STEP_IN_MS = 100;
+    static final int MOUSE_STEP_IN_MS_INIT = 33;
+    static final int GRID_STEP_DIV = 40;
+    static final boolean MOUSE_CENTER = true;
+    static final int VP_SCALE = 1;
+    */
+
+    static final int MOUSE_STEP_IN_MS_INIT = 500;
+    static final int GRID_STEP_DIV = 20;
+    static final boolean MOUSE_CENTER = false;
+    static final int VP_SCALE = 4;
+    /**/
+
+    static final float SFACTOR = (float)40/GRID_STEP_DIV;
+    static final float MOUSE_OVAL_SIZE = 10f*((float)1+SFACTOR*(float)Math.log((float)VP_SCALE));
+    static final float POINT_OVAL_SIZE = 7f*((float)1+SFACTOR*(float)Math.log((float)VP_SCALE));
+    static final float TARGET_OVAL_SIZE = 12f*((float)1+SFACTOR*(float)Math.log((float)VP_SCALE));
 
     public int width;
     public int height;
@@ -40,6 +54,8 @@ public class CanvasView extends View {
     private Paint mousePaint;
     private Paint pointPaint;
     private Paint targetPaint;
+    private Paint p1Paint;
+    private Paint scorePaint;
     private Point p1;
 
     private int mouseDir = -1;
@@ -49,9 +65,25 @@ public class CanvasView extends View {
     private Handler handler = new Handler();
     private AlgoInterface pathAlgo;
 
+    private int mouseWin = 0;
+    private int p1Win = 0;
+    private int mouse_step_in_ms = 700;
+
+    private void hideSystemUI() {
+        this.setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav bar
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE);
+    }
+
     public CanvasView(Context c, AttributeSet attrs) {
         super(c, attrs);
         context = c;
+
+        hideSystemUI();
 
         // we set a new Path
         mPath = new Path();
@@ -78,6 +110,19 @@ public class CanvasView extends View {
         mousePaint.setAntiAlias(true);
         mousePaint.setColor(Color.YELLOW);
         mousePaint.setStyle(Paint.Style.FILL);
+        mousePaint.setAlpha(255 * 60 / 100);
+
+        p1Paint = new Paint();
+        p1Paint.setAntiAlias(true);
+        p1Paint.setColor(Color.BLUE);
+        p1Paint.setStyle(Paint.Style.FILL);
+        p1Paint.setAlpha(255*60/100);
+
+        scorePaint = new Paint();
+        scorePaint.setAntiAlias(true);
+        scorePaint.setColor(Color.RED);
+        scorePaint.setStyle(Paint.Style.STROKE);
+        scorePaint.setTextSize(20);
 
         handler.postDelayed(runnable, 100);
     }
@@ -102,6 +147,8 @@ public class CanvasView extends View {
         pathAlgo = new DijkAlgo(mouse);
     }
 
+    private Object sync = new Object();
+
     private Runnable runnable = new Runnable() {
         @Override
         public void run() {
@@ -114,10 +161,15 @@ public class CanvasView extends View {
                 mouse = pathAlgo.getNextMove();
                 invalidate();
                 if (!pathAlgo.isFound())
-                    handler.postDelayed(this, MOUSE_STEP_IN_MS);
+                    handler.postDelayed(this, mouse_step_in_ms);
                 else {
-                    reInit = true;
-                    handler.postDelayed(this, 1000);
+                    synchronized (sync) {
+                        if (!reInit) {
+                            reInit = true;
+                            mouseWin++;
+                        }
+                    }
+                    handler.postDelayed(this, 2000);
                 }
             } else
                 handler.postDelayed(this, 500);
@@ -137,11 +189,12 @@ public class CanvasView extends View {
         width = w;
         height = h;
 
-        gridStep = width/20;
+        gridStep = width/GRID_STEP_DIV;
         if (width > h) {
-            gridStep = h/20;
+            gridStep = h/GRID_STEP_DIV;
         }
 
+        mouse_step_in_ms = MOUSE_STEP_IN_MS_INIT;
         initMaze();
     }
 
@@ -150,11 +203,25 @@ public class CanvasView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
+        int scale = VP_SCALE;
+        int viewStep = gridStep*scale;
+        int mx = width/2;
+        int my = height/2;
+        int dx = (mx - mouse.x * viewStep);
+        int dy = (my - mouse.y * viewStep);
+        if (!MOUSE_CENTER) {
+            dx = (mx - p1.x * viewStep);
+            dy = (my - p1.y * viewStep);
+        }
+
         if (points == null)
             return;
 
         /* clear background */
-        canvas.drawARGB(0xff, 0x84, 0xde, 0xff);
+        if (reInit)
+            canvas.drawARGB(0xff, 0xff, 0, 0);
+        else
+            canvas.drawARGB(0xff, 0x84, 0xde, 0xff);
 
         /* draw grid lines */
         /*
@@ -167,32 +234,26 @@ public class CanvasView extends View {
         */
 
         // and we set a new Paint with the desired attributes
-        Paint p1p = new Paint();
-        p1p.setAntiAlias(true);
-        p1p.setColor(Color.RED);
-        p1p.setStyle(Paint.Style.STROKE);
-        p1p.setStrokeJoin(Paint.Join.ROUND);
-        p1p.setStrokeWidth(35f);
 
         for (int i=0;i<points.length;i++) {
             Point pt = points[i];
-            int x = pt.x * gridStep;
-            int y = pt.y * gridStep;
+            int x = pt.x * viewStep+dx;
+            int y = pt.y * viewStep+dy;
 
             if (pt.left != null)
-                canvas.drawLine(x, y, x - gridStep, y,linePaint);
+                canvas.drawLine(x, y, x - viewStep, y,linePaint);
             if (pt.right != null)
-                canvas.drawLine(x, y, x + gridStep, y,linePaint);
+                canvas.drawLine(x, y, x + viewStep, y,linePaint);
             if (pt.up != null)
-                canvas.drawLine(x, y, x, y-gridStep,linePaint);
+                canvas.drawLine(x, y, x, y-viewStep,linePaint);
             if (pt.down != null)
-                canvas.drawLine(x, y, x, y+gridStep,linePaint);
+                canvas.drawLine(x, y, x, y+viewStep,linePaint);
         }
 
         for (int i=0;i<points.length;i++) {
             Point pt = points[i];
-            int x = pt.x * gridStep;
-            int y = pt.y * gridStep;
+            int x = pt.x * viewStep+dx;
+            int y = pt.y * viewStep+dy;
 
             Paint p = null;
             float ov_size = 0;
@@ -208,17 +269,27 @@ public class CanvasView extends View {
         }
 
         if (mouse != null) {
-            canvas.drawCircle(mouse.x * gridStep, mouse.y * gridStep, MOUSE_OVAL_SIZE, mousePaint);
+            if (MOUSE_CENTER)
+                canvas.drawCircle(mx, my, MOUSE_OVAL_SIZE, mousePaint);
+            else
+                canvas.drawCircle(mouse.x * viewStep + dx, mouse.y * viewStep + dy, MOUSE_OVAL_SIZE, mousePaint);
         }
 
         if (p1 != null) {
-            p1p.setColor(Color.BLUE);
-            canvas.drawPoint(p1.x * gridStep, p1.y * gridStep, p1p);
+            if (MOUSE_CENTER)
+                canvas.drawCircle(p1.x * viewStep + dx, p1.y * viewStep + dy, MOUSE_OVAL_SIZE, p1Paint);
+            else
+                canvas.drawCircle(mx, my, MOUSE_OVAL_SIZE, p1Paint);
         }
+
+        canvas.drawText("P1:"+p1Win+"  Mouse:"+mouseWin, 15, 15, scorePaint);
     }
 
     // when ACTION_DOWN start touch according to the x,y values
     private void startTouch(float x, float y) {
+        if (reInit)
+            return;
+
         mPath.moveTo(x, y);
         mX = x;
         mY = y;
@@ -233,6 +304,20 @@ public class CanvasView extends View {
             p1 = p1.left;
         }
 
+        if (p1.mTarget) {
+            synchronized (sync) {
+                if (!reInit) {
+                    reInit = true;
+                    p1Win++;
+                    if (mouse_step_in_ms > 100)
+                        mouse_step_in_ms -= 100;
+                    else if (mouse_step_in_ms > 33)
+                        mouse_step_in_ms -= 10;
+                    handler.removeCallbacks(runnable);
+                    handler.postDelayed(runnable, 2000);
+                }
+            }
+        }
     }
 
     // when ACTION_MOVE move touch according to the x,y values

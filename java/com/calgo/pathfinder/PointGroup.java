@@ -33,7 +33,7 @@ class PointGroup {
 
         addCurrentPoint();
 
-        for (int i=0;i<70;i++) {
+        for (int i=0;i<(maxX*maxY)/4;i++) {
             if (move(mDir))
                 addCurrentPoint();
 
