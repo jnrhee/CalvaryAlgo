@@ -1,6 +1,8 @@
 package com.calgo.pathfinder;
 
-class Point{
+import java.util.ArrayList;
+
+class Point implements  Comparable<Point>{
     static final int UP = 0;
     static final int DOWN = 1;
     static final int LEFT = 2;
@@ -18,6 +20,11 @@ class Point{
     boolean mTarget;
     private boolean isVisit;
 
+    //Dijkstra
+    int minDistance;
+    int weight;
+    Point previousPoint;
+
     Point (int a, int b) {
         x = a;
         y = b;
@@ -25,6 +32,9 @@ class Point{
         end = -1;
         mTarget = false;
         isVisit = false;
+        //Dijkstra
+        minDistance = Integer.MAX_VALUE;
+        weight = 1;
     }
 
     void tryToLinkTo(Point p) {
@@ -81,5 +91,34 @@ class Point{
 
     boolean getVisit() {
         return isVisit;
+    }
+
+    ArrayList<Point> getNeighbors() {
+        ArrayList<Point> neighbors = new ArrayList<Point>();
+
+        if (up != null)
+            neighbors.add(up);
+        if (right != null)
+            neighbors.add(right);
+        if (down != null)
+            neighbors.add(down);
+        if (left != null)
+            neighbors.add(left);
+
+        return neighbors;
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getName() + "@" + "x["+x +"] y["+ y+"]";
+    }
+
+    @Override
+    public int compareTo(Point other)
+    {
+      // return minDistance.compareTo(other.minDistance);
+      return Double.compare(minDistance, other.minDistance);
+        //
+       // minDistance.compareTo()
     }
 }

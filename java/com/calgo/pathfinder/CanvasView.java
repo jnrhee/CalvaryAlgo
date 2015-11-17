@@ -97,8 +97,9 @@ public class CanvasView extends View {
 
         mouseDir = -1;
 
-      pathAlgo = new DFSAlgo(mouse);
+ //     pathAlgo = new DFSAlgo(mouse);
  //        pathAlgo = new RandAlgo(mouse);
+        pathAlgo = new DijkAlgo(mouse);
     }
 
     private Runnable runnable = new Runnable() {
