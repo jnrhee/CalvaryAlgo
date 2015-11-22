@@ -54,7 +54,15 @@ class PointGroup {
         }
 
         Point[] pts = mAl.toArray(new Point[mAl.size()]);
-        Point startPt = mAl.get(0);
+
+        double ranV = Math.random();
+        int dstX = (int) (ranV*maxX);
+
+        if (ranV < 0.5)
+            ranV = Math.random()/2+0.5;
+
+        int dstY = (int) (ranV*maxY);
+        Point dstPt = new Point(dstX, dstY);
         Point endPt = null;
 
         for (int i=0;i<mAl.size()-1;i++) {
@@ -65,7 +73,7 @@ class PointGroup {
 
             if (endPt == null)
                 endPt = p;
-            else if (p.distanceFrom(startPt) > endPt.distanceFrom(startPt))
+            else if (p.distanceFrom(dstPt) < endPt.distanceFrom(dstPt))
                 endPt = p;
         }
 

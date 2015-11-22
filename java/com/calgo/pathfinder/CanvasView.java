@@ -19,8 +19,8 @@ public class CanvasView extends View {
     static final int GRID_STEP_DIV = 40;
     static final boolean MOUSE_CENTER = true;
     static final int VP_SCALE = 1;
-    */
 
+*/
     static final int MOUSE_STEP_IN_MS_INIT = 500;
     static final int GRID_STEP_DIV = 20;
     static final boolean MOUSE_CENTER = false;
@@ -68,6 +68,8 @@ public class CanvasView extends View {
     private int mouseWin = 0;
     private int p1Win = 0;
     private int mouse_step_in_ms = 700;
+
+    private int lastWinnder;
 
     private void hideSystemUI() {
         this.setSystemUiVisibility(
@@ -138,9 +140,12 @@ public class CanvasView extends View {
         dGuideY1 = height * 1/3;
         dGuideY2 = height * 2/3;
 
-        dGuideX  = width * 1/2;
+        dGuideX  = width * 1/3;
 
         mouseDir = -1;
+
+        inAnimation = false;
+        lastDx = lastDy = ANIM_INIT_XY_VAL;
 
  //     pathAlgo = new DFSAlgo(mouse);
  //        pathAlgo = new RandAlgo(mouse);
@@ -167,6 +172,7 @@ public class CanvasView extends View {
                         if (!reInit) {
                             reInit = true;
                             mouseWin++;
+                            lastWinnder = 0;
                         }
                     }
                     handler.postDelayed(this, 2000);
@@ -198,7 +204,16 @@ public class CanvasView extends View {
         initMaze();
     }
 
-    // override onDraw
+    static final int ANIM_FPS = 5;
+    static final int ANIM_INIT_XY_VAL = -999999;
+
+    static int lastDx = ANIM_INIT_XY_VAL;
+    static int lastDy = ANIM_INIT_XY_VAL;
+    static boolean inAnimation;
+    static int animDxStep;
+    static int animDyStep;
+    static int prevAxis;
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -214,13 +229,71 @@ public class CanvasView extends View {
             dy = (my - p1.y * viewStep);
         }
 
+        if (lastDx == ANIM_INIT_XY_VAL) {
+            lastDx = dx;
+            lastDy = dy;
+            inAnimation = false;
+        } else if ((dx != lastDx) || (dy != lastDy)) {
+            inAnimation = true;
+
+            animDxStep = (dx-lastDx)/ANIM_FPS;
+            animDyStep = (dy-lastDy)/ANIM_FPS;
+
+            /* check for corner animation and speed it up to finish
+             * the previous directional animation first.
+             */
+            /*
+            if (animDxStep != 0 && animDyStep != 0) {
+                if (prevAxis == 0) {
+                    animDyStep = 0;
+                    animDxStep *= 2;
+                } else {
+                    animDxStep = 0;
+                    animDyStep *= 2;
+                }
+            }
+            */
+
+            lastDx += animDxStep;
+            lastDy += animDyStep;
+
+            /* check for close-by */
+            int d = Math.abs(dx);
+            int r = Math.abs((dx-lastDx)%5);
+            int i = Math.abs(lastDx);
+
+            if ((i >= (d-r)) && (i <= (d+r)))
+                lastDx = dx;
+
+            d = Math.abs(dy);
+            r = Math.abs((dy-lastDy)%5);
+            i = Math.abs(lastDy);
+
+            if ((i >= (d-r)) && (i <= (d+r)))
+                lastDy = dy;
+
+            if (animDxStep != 0)
+                prevAxis = 0;
+            else
+                prevAxis = 1;
+
+            if ((dx == lastDx) && (dy == lastDy))
+                inAnimation = false;
+
+            dx = lastDx;
+            dy = lastDy;
+        }
+
         if (points == null)
             return;
 
         /* clear background */
-        if (reInit)
-            canvas.drawARGB(0xff, 0xff, 0, 0);
-        else
+        if (reInit & !inAnimation) {
+            if (lastWinnder == 0)
+                canvas.drawARGB(0xff, 0xff, 0, 0);
+            else if (lastWinnder == 1)
+                canvas.drawARGB(0xff, 0x10, 0x10, 0xff);
+        } else
             canvas.drawARGB(0xff, 0x84, 0xde, 0xff);
 
         /* draw grid lines */
@@ -283,6 +356,17 @@ public class CanvasView extends View {
         }
 
         canvas.drawText("P1:"+p1Win+"  Mouse:"+mouseWin, 15, 15, scorePaint);
+
+        if (inAnimation)
+            invalidate();
+
+            /* handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    invalidate();
+                    }
+                }, 16); */
+
     }
 
     // when ACTION_DOWN start touch according to the x,y values
@@ -290,18 +374,18 @@ public class CanvasView extends View {
         if (reInit)
             return;
 
-        mPath.moveTo(x, y);
-        mX = x;
-        mY = y;
-
-        if (y <= dGuideY1 && p1.up != null) {
-            p1 = p1.up;
-        } else if (y >= dGuideY2 && p1.down != null) {
-            p1 = p1.down;
-        } else if (x >= dGuideX && p1.right != null) {
-            p1 = p1.right;
-        } else if (x < dGuideX && p1.left != null) {
-            p1 = p1.left;
+        if (y <= dGuideY1) {
+            if (p1.up != null)
+                p1 = p1.up;
+        } else if (y >= dGuideY2) {
+            if (p1.down != null)
+                p1 = p1.down;
+        } else if (x >= dGuideX*2) {
+            if (p1.right != null)
+                p1 = p1.right;
+        } else if (x < dGuideX) {
+            if (p1.left != null)
+                p1 = p1.left;
         }
 
         if (p1.mTarget) {
@@ -309,6 +393,8 @@ public class CanvasView extends View {
                 if (!reInit) {
                     reInit = true;
                     p1Win++;
+                    lastWinnder = 1;
+
                     if (mouse_step_in_ms > 100)
                         mouse_step_in_ms -= 100;
                     else if (mouse_step_in_ms > 33)
@@ -318,28 +404,6 @@ public class CanvasView extends View {
                 }
             }
         }
-    }
-
-    // when ACTION_MOVE move touch according to the x,y values
-    private void moveTouch(float x, float y) {
-        float dx = Math.abs(x - mX);
-        float dy = Math.abs(y - mY);
-
-        if (dx >= TOLERANCE || dy >= TOLERANCE) {
-            mPath.quadTo(mX, mY, (x + mX) / 2, (y + mY) / 2);
-            mX = x;
-            mY = y;
-        }
-    }
-
-    public void clearCanvas() {
-        mPath.reset();
-        invalidate();
-    }
-
-    // when ACTION_UP stop touch
-    private void upTouch() {
-        mPath.lineTo(mX, mY);
     }
 
     //override the onTouchEvent
@@ -353,14 +417,6 @@ public class CanvasView extends View {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 startTouch(x, y);
-                updateScreen = true;
-                break;
-            case MotionEvent.ACTION_MOVE:
-                moveTouch(x, y);
-                updateScreen = true;
-                break;
-            case MotionEvent.ACTION_UP:
-                upTouch();
                 updateScreen = true;
                 break;
         }
