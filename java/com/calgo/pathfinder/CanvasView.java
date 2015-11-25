@@ -11,6 +11,7 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.RelativeLayout;
 
 public class CanvasView extends View {
     /*
@@ -217,7 +218,7 @@ public class CanvasView extends View {
         if (mButtons[Point.RIGHT] != null)
             return;
 
-        int bSize = width/6;
+        int bSize = width/5;
         mButtons[Point.RIGHT] = (Button) context.findViewById(R.id.btnR);
 
         int origSize = mButtons[Point.RIGHT].getWidth();
@@ -226,11 +227,50 @@ public class CanvasView extends View {
             return;
         }
 
-        float scaleRatio = (float) bSize / (float) origSize;
-        mButtons[Point.RIGHT].setX(width/2+bSize/2);
-        mButtons[Point.RIGHT].setY(height - bSize);
-        mButtons[Point.RIGHT].setScaleX(scaleRatio);
-        mButtons[Point.RIGHT].setScaleY(scaleRatio);
+        mButtons[Point.LEFT] = (Button) context.findViewById(R.id.btnL);
+        mButtons[Point.UP] = (Button) context.findViewById(R.id.btnU);
+        mButtons[Point.DOWN] = (Button) context.findViewById(R.id.btnD);
+
+
+        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(bSize, bSize);
+        mButtons[Point.RIGHT].setLayoutParams(lp);
+        mButtons[Point.RIGHT].setX(width / 2 + bSize / 2);
+        mButtons[Point.RIGHT].setY(height - bSize * 2);
+        mButtons[Point.RIGHT].setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                handleButton(Point.RIGHT);
+            }
+        });
+
+        mButtons[Point.LEFT].setLayoutParams(lp);
+        mButtons[Point.LEFT].setX(width / 2 - bSize / 2 - bSize);
+        mButtons[Point.LEFT].setY(height - bSize * 2);
+        mButtons[Point.LEFT].setRotation(180);
+        mButtons[Point.LEFT].setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                handleButton(Point.LEFT);
+            }
+        });
+
+        mButtons[Point.UP].setLayoutParams(lp);
+        mButtons[Point.UP].setX(width / 2 - bSize / 2);
+        mButtons[Point.UP].setY(height - bSize * 3);
+        mButtons[Point.UP].setRotation(-90);
+        mButtons[Point.UP].setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                handleButton(Point.UP);
+            }
+        });
+
+        mButtons[Point.DOWN].setLayoutParams(lp);
+        mButtons[Point.DOWN].setX(width / 2 - bSize / 2);
+        mButtons[Point.DOWN].setY(height - bSize);
+        mButtons[Point.DOWN].setRotation(90);
+        mButtons[Point.DOWN].setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                handleButton(Point.DOWN);
+            }
+        });
     }
 
     private final int ANIM_FPS = 5;
@@ -416,23 +456,31 @@ public class CanvasView extends View {
     private Point prevP1;
 
     // when ACTION_DOWN start touch according to the x,y values
-    private void startTouch(float x, float y) {
+    private void handleButton(int dir) {
         if (reInit)
             return;
 
         prevP1 = p1;
-        if (y <= dGuideY1) {
-            if (p1.up != null)
-                p1 = p1.up;
-        } else if (y >= dGuideY2) {
-            if (p1.down != null)
-                p1 = p1.down;
-        } else if (x >= dGuideX*2) {
-            if (p1.right != null)
-                p1 = p1.right;
-        } else if (x < dGuideX) {
-            if (p1.left != null)
-                p1 = p1.left;
+        switch (dir) {
+            case Point.UP:
+                if (p1.up != null)
+                    p1 = p1.up;
+                break;
+
+            case Point.DOWN:
+                if (p1.down != null)
+                    p1 = p1.down;
+                break;
+
+            case Point.RIGHT:
+                if (p1.right != null)
+                    p1 = p1.right;
+                break;
+
+            case Point.LEFT:
+                if (p1.left != null)
+                    p1 = p1.left;
+                break;
         }
 
         if (p1.mTarget) {
@@ -451,6 +499,8 @@ public class CanvasView extends View {
                 }
             }
         }
+
+        invalidate();
     }
 
     //override the onTouchEvent
@@ -463,8 +513,8 @@ public class CanvasView extends View {
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                startTouch(x, y);
-                updateScreen = true;
+                //startTouch(x, y);
+                //updateScreen = true;
                 break;
         }
 
