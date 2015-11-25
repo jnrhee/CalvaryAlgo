@@ -10,6 +10,7 @@ class PointGroup {
     private ArrayList<Point> mAl = new ArrayList<Point>();
     private int idx;
     private int mDir;
+    Point targetPoint;
 
     PointGroup (int x1, int y1, int mx, int my) {
         mX = x1;
@@ -78,6 +79,7 @@ class PointGroup {
         }
 
         endPt.mTarget = true;
+        targetPoint = endPt;
     }
 
     static boolean isOppositeDir(int d1, int d2) {

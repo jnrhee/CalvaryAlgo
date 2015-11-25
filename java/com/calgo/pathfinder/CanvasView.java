@@ -23,7 +23,7 @@ public class CanvasView extends View {
     static final int VP_SCALE = 1;
 
 */
-    static final int MOUSE_STEP_IN_MS_INIT = 500;
+    static final int MOUSE_STEP_IN_MS_INIT = 250;
     static final int GRID_STEP_DIV = 20;
     static final boolean MOUSE_CENTER = false;
     static final int VP_SCALE = 4;
@@ -53,7 +53,7 @@ public class CanvasView extends View {
     private PointGroup pg;
     private Point[] points;
 
-    private Point mouse;
+    private Point[] mouse;
     private Paint mousePaint;
     private Paint pointPaint;
     private Paint targetPaint;
@@ -62,16 +62,17 @@ public class CanvasView extends View {
 
     private int mouseDir = -1;
 
-
     private boolean reInit = false;
     private Handler handler = new Handler();
-    private AlgoInterface pathAlgo;
+    private AlgoInterface[] pathAlgo;
 
     private int mouseWin = 0;
     private int p1Win = 0;
     private int mouse_step_in_ms = 700;
 
     private int lastWinnder;
+
+    private int mLevel = 2;
 
     private Button[] mButtons = new Button[4];
 
@@ -138,7 +139,11 @@ public class CanvasView extends View {
         pg.addRandomPoints();
         points = pg.getAllPoints();
 
-        mouse = pg.getStartingPoint();
+        mouse = new Point[mLevel];
+
+        for (int i=0;i<mouse.length;i++)
+            mouse[i] = pg.targetPoint;
+
         p1    = pg.getStartingPoint();
 
         dGuideY1 = height * 1/3;
@@ -157,8 +162,12 @@ public class CanvasView extends View {
             cov.invalidate();
 
  //     pathAlgo = new DFSAlgo(mouse);
- //        pathAlgo = new RandAlgo(mouse);
-        pathAlgo = new DijkAlgo(mouse);
+        pathAlgo = new AlgoInterface[mLevel];
+
+        for (int i=0;i<mouse.length;i++) {
+            pathAlgo[i] = new RandAlgo(mouse[i]);
+        }
+      //  pathAlgo = new DijkAlgo(mouse);
     }
 
     private Object sync = new Object();
@@ -172,20 +181,25 @@ public class CanvasView extends View {
             }
 
             if (mouse != null) {
-                mouse = pathAlgo.getNextMove();
-                invalidate();
-                if (!pathAlgo.isFound())
-                    handler.postDelayed(this, mouse_step_in_ms);
-                else {
-                    synchronized (sync) {
-                        if (!reInit) {
-                            reInit = true;
-                            mouseWin++;
-                            lastWinnder = 0;
+                for (int i=0;i<mouse.length;i++) {
+                    mouse[i] = pathAlgo[i].getNextMove();
+
+                    if (mouse[i] == p1) {
+                        synchronized (sync) {
+                            if (!reInit) {
+                                reInit = true;
+                                mouseWin++;
+                                lastWinnder = 0;
+                            }
+                            handler.postDelayed(this, 2000);
                         }
+                        break;
                     }
-                    handler.postDelayed(this, 2000);
                 }
+
+                if (!reInit)
+                    handler.postDelayed(this, mouse_step_in_ms);
+                invalidate();
             } else
                 handler.postDelayed(this, 500);
         }
@@ -306,12 +320,8 @@ public class CanvasView extends View {
         int viewStep = gridStep*scale;
         int mx = width/2;
         int my = height/2;
-        int dx = (mx - mouse.x * viewStep);
-        int dy = (my - mouse.y * viewStep);
-        if (!MOUSE_CENTER) {
-            dx = (mx - p1.x * viewStep);
-            dy = (my - p1.y * viewStep);
-        }
+        int dx = (mx - p1.x * viewStep);
+        int dy = (my - p1.y * viewStep);
 
         if (lastDx == ANIM_INIT_XY_VAL) {
             lastDx = dx;
@@ -425,11 +435,10 @@ public class CanvasView extends View {
             canvas.drawCircle(x, y, ov_size, p);
         }
 
-        if (mouse != null) {
-            if (MOUSE_CENTER)
-                canvas.drawCircle(mx, my, MOUSE_OVAL_SIZE, mousePaint);
-            else
-                canvas.drawCircle(mouse.x * viewStep + dx, mouse.y * viewStep + dy, MOUSE_OVAL_SIZE, mousePaint);
+        for (int i=0;mouse!=null && i<mouse.length;i++) {
+            if (mouse[i] != null) {
+                canvas.drawCircle(mouse[i].x * viewStep + dx, mouse[i].y * viewStep + dy, MOUSE_OVAL_SIZE, mousePaint);
+            }
         }
 
         if (p1 != null) {
@@ -488,6 +497,7 @@ public class CanvasView extends View {
                 if (!reInit) {
                     reInit = true;
                     p1Win++;
+                    mLevel++;
                     lastWinnder = 1;
 
                     if (mouse_step_in_ms > 100)
@@ -528,20 +538,31 @@ public class CanvasView extends View {
         return p1Path;
     }
 
-    Point getPoint(int who) {
-        switch (who) {
-            case 0: return mouse;
-            case 1: return p1;
-        }
-        return null;
+    int getObjPointSize() {
+        // p1 + targetPoint + all mouse points
+        return 2 + mouse.length;
+    }
+
+    Point getObjPoint(int who) {
+        if (who == 0)
+            return p1;
+        else if (who == 1)
+            return pg.targetPoint;
+
+        int idx = who - 2;
+
+        if (idx >= mouse.length)
+            return null;
+        else
+            return mouse[idx];
     }
 
     Paint getPaint(int who) {
         switch (who) {
-            case 0: return mousePaint;
-            case 1: return p1Paint;
+            case 0: return p1Paint;
+            case 1: return targetPaint;
+            default: return mousePaint;
         }
-        return null;
     }
 
     int getGridStep() {

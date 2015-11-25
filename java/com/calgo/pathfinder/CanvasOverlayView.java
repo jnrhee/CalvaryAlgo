@@ -70,8 +70,9 @@ public class CanvasOverlayView extends View {
             canvas.drawPath(mPath, mPaint);
         }
 
-        for (int i=0;i<2;i++) {
-            Point obj = mainCv.getPoint(i);
+        int size = mainCv.getObjPointSize();
+        for (int i=0;i<size;i++) {
+            Point obj = mainCv.getObjPoint(i);
             Paint paint = mainCv.getPaint(i);
             int gridStep = mainCv.getGridStep();
             canvas.drawCircle(
