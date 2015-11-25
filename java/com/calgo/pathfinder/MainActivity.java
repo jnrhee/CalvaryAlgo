@@ -4,16 +4,44 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.WindowManager;
 
 public class MainActivity extends AppCompatActivity {
     static final String DBG = "CALGO";
+    View decorView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        this.decorView = getWindow().getDecorView();
+
+        // Hide the status bar.
+        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+        this.decorView.setSystemUiVisibility(uiOptions);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        this.decorView = getWindow().getDecorView();
+        // Hide the status bar.
+        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+        decorView.setSystemUiVisibility(uiOptions);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+
+        this.decorView = getWindow().getDecorView();
+        // Hide the status bar.
+        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+        decorView.setSystemUiVisibility(uiOptions);
     }
 
     @Override
