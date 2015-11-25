@@ -9,7 +9,9 @@ import android.view.WindowManager;
 
 public class MainActivity extends AppCompatActivity {
     static final String DBG = "CALGO";
+
     View decorView;
+    int  uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -17,20 +19,17 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        this.decorView = getWindow().getDecorView();
-
         // Hide the status bar.
-        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
-        this.decorView.setSystemUiVisibility(uiOptions);
+        decorView = getWindow().getDecorView();
+        decorView.setSystemUiVisibility(uiOptions);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
-        this.decorView = getWindow().getDecorView();
         // Hide the status bar.
-        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+        decorView = getWindow().getDecorView();
         decorView.setSystemUiVisibility(uiOptions);
     }
 
@@ -38,9 +37,8 @@ public class MainActivity extends AppCompatActivity {
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
 
-        this.decorView = getWindow().getDecorView();
         // Hide the status bar.
-        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+        decorView = getWindow().getDecorView();
         decorView.setSystemUiVisibility(uiOptions);
     }
 
