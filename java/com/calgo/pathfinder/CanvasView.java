@@ -23,7 +23,7 @@ public class CanvasView extends View {
     static final int VP_SCALE = 1;
 
 */
-    static final int MOUSE_STEP_IN_MS_INIT = 250;
+    static final int MOUSE_STEP_IN_MS_INIT = 300;
     static final int GRID_STEP_DIV = 20;
     static final boolean MOUSE_CENTER = false;
     static final int VP_SCALE = 4;
@@ -68,7 +68,7 @@ public class CanvasView extends View {
 
     private int mouseWin = 0;
     private int p1Win = 0;
-    private int mouse_step_in_ms = 700;
+    private int mouse_step_in_ms = MOUSE_STEP_IN_MS_INIT;
 
     private int lastWinnder;
 
@@ -501,10 +501,6 @@ public class CanvasView extends View {
                     mLevel++;
                     lastWinnder = 1;
 
-                    if (mouse_step_in_ms > 100)
-                        mouse_step_in_ms -= 100;
-                    else if (mouse_step_in_ms > 33)
-                        mouse_step_in_ms -= 10;
                     handler.removeCallbacks(runnable);
                     handler.postDelayed(runnable, 2000);
                 }

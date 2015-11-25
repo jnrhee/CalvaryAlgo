@@ -1,6 +1,7 @@
 package com.calgo.pathfinder;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 class PointGroup {
     private int mX; // next point to add
@@ -11,6 +12,7 @@ class PointGroup {
     private int idx;
     private int mDir;
     Point targetPoint;
+    HashSet<Integer> hs;
 
     PointGroup (int x1, int y1, int mx, int my) {
         mX = x1;
@@ -22,6 +24,7 @@ class PointGroup {
 
     void addRandomPoints() {
         int dir;
+        hs = new HashSet<Integer>();
 
         /* set initial direction */
         addCurrentPoint();
@@ -129,7 +132,9 @@ class PointGroup {
 
     private void addCurrentPoint() {
         Point p = new Point(mX, mY);
-        mAl.add(p);
+        int val = mX<<16 | mY;
+        if (hs.add(val))
+         mAl.add(p);
     }
 
     Point[] getAllPoints() {
