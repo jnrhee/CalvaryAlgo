@@ -182,9 +182,10 @@ public class CanvasView extends View {
 
             if (mouse != null) {
                 for (int i=0;i<mouse.length;i++) {
+                    Point prevMousePt = mouse[i];
                     mouse[i] = pathAlgo[i].getNextMove();
 
-                    if (mouse[i] == p1) {
+                    if (mouse[i] == p1 || prevMousePt == p1) {
                         synchronized (sync) {
                             if (!reInit) {
                                 reInit = true;
