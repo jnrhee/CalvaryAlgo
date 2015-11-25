@@ -10,6 +10,7 @@ import android.os.Handler;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Button;
 
 public class CanvasView extends View {
     /*
@@ -70,6 +71,8 @@ public class CanvasView extends View {
     private int mouse_step_in_ms = 700;
 
     private int lastWinnder;
+
+    private Button[] mButtons = new Button[4];
 
     private void hideSystemUI() {
         this.setSystemUiVisibility(
@@ -206,7 +209,28 @@ public class CanvasView extends View {
         }
 
         mouse_step_in_ms = MOUSE_STEP_IN_MS_INIT;
+
         initMaze();
+    }
+
+    private void setupPostView() {
+        if (mButtons[Point.RIGHT] != null)
+            return;
+
+        int bSize = width/6;
+        mButtons[Point.RIGHT] = (Button) context.findViewById(R.id.btnR);
+
+        int origSize = mButtons[Point.RIGHT].getWidth();
+        if (origSize == 0) {
+            mButtons[Point.RIGHT] = null;
+            return;
+        }
+
+        float scaleRatio = (float) bSize / (float) origSize;
+        mButtons[Point.RIGHT].setX(width/2+bSize/2);
+        mButtons[Point.RIGHT].setY(height - bSize);
+        mButtons[Point.RIGHT].setScaleX(scaleRatio);
+        mButtons[Point.RIGHT].setScaleY(scaleRatio);
     }
 
     private final int ANIM_FPS = 5;
@@ -224,6 +248,8 @@ public class CanvasView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+
+        setupPostView();
 
         /* overlay coordinates update */
         if(prevP1 != null && prevP1 != p1) {
