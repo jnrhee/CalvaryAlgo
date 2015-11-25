@@ -34,12 +34,13 @@ public class CanvasView extends View {
 
     public int width;
     public int height;
-    Context context;
+    public Paint p1Paint;
 
+    private MainActivity context;
     private int gridStep;
     private Bitmap mBitmap;
     private Canvas mCanvas;
-    private Path mPath;
+    private Path p1Path;
     private Paint linePaint;
     private float mX, mY;
 
@@ -54,7 +55,6 @@ public class CanvasView extends View {
     private Paint mousePaint;
     private Paint pointPaint;
     private Paint targetPaint;
-    private Paint p1Paint;
     private Paint scorePaint;
     private Point p1;
 
@@ -83,12 +83,12 @@ public class CanvasView extends View {
 
     public CanvasView(Context c, AttributeSet attrs) {
         super(c, attrs);
-        context = c;
+        context = (MainActivity)c;
 
         hideSystemUI();
 
         // we set a new Path
-        mPath = new Path();
+        p1Path = new Path();
 
         // and we set a new Paint with the desired attributes
         linePaint = new Paint();
@@ -147,6 +147,11 @@ public class CanvasView extends View {
         inAnimation = false;
         lastDx = lastDy = ANIM_INIT_XY_VAL;
 
+        p1Path.reset();
+        prevP1 = null;
+        if (cov != null)
+            cov.invalidate();
+
  //     pathAlgo = new DFSAlgo(mouse);
  //        pathAlgo = new RandAlgo(mouse);
         pathAlgo = new DijkAlgo(mouse);
@@ -204,19 +209,32 @@ public class CanvasView extends View {
         initMaze();
     }
 
-    static final int ANIM_FPS = 5;
-    static final int ANIM_INIT_XY_VAL = -999999;
+    private final int ANIM_FPS = 5;
+    private final int ANIM_INIT_XY_VAL = -999999;
 
-    static int lastDx = ANIM_INIT_XY_VAL;
-    static int lastDy = ANIM_INIT_XY_VAL;
-    static boolean inAnimation;
-    static int animDxStep;
-    static int animDyStep;
-    static int prevAxis;
+    private int lastDx = ANIM_INIT_XY_VAL;
+    private int lastDy = ANIM_INIT_XY_VAL;
+    private boolean inAnimation;
+    private int animDxStep;
+    private int animDyStep;
+    private int prevAxis;
+
+    private CanvasOverlayView cov;
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+
+        /* overlay coordinates update */
+        if(prevP1 != null && prevP1 != p1) {
+            p1Path.moveTo(p1.x*gridStep, p1.y*gridStep);
+            p1Path.lineTo(prevP1.x*gridStep, prevP1.y*gridStep);
+        }
+        if (cov == null) {
+            cov = (CanvasOverlayView) context.findViewById(R.id.myCanvasOverlay);
+        }
+        if (cov != null)
+            cov.invalidate();
 
         int scale = VP_SCALE;
         int viewStep = gridStep*scale;
@@ -369,11 +387,14 @@ public class CanvasView extends View {
 
     }
 
+    private Point prevP1;
+
     // when ACTION_DOWN start touch according to the x,y values
     private void startTouch(float x, float y) {
         if (reInit)
             return;
 
+        prevP1 = p1;
         if (y <= dGuideY1) {
             if (p1.up != null)
                 p1 = p1.up;
@@ -425,5 +446,29 @@ public class CanvasView extends View {
             invalidate();
 
         return true;
+    }
+
+    Path getPath(int who) {
+        return p1Path;
+    }
+
+    Point getPoint(int who) {
+        switch (who) {
+            case 0: return mouse;
+            case 1: return p1;
+        }
+        return null;
+    }
+
+    Paint getPaint(int who) {
+        switch (who) {
+            case 0: return mousePaint;
+            case 1: return p1Paint;
+        }
+        return null;
+    }
+
+    int getGridStep() {
+        return gridStep;
     }
 }
