@@ -75,7 +75,11 @@ public class CanvasOverlayView extends View {
             Point obj = mainCv.getObjPoint(i);
             Paint paint = mainCv.getPaint(i);
             int gridStep = mainCv.getGridStep();
-            canvas.drawCircle(
+            /* TODO:
+             * why obj sometimes = null?
+             */
+            if (obj != null)
+                canvas.drawCircle(
                     padding + PADDING_SCALE * (float) (obj.x * gridStep),
                     padding + PADDING_SCALE * (float) (obj.y * gridStep),
                     mainCv.MOUSE_OVAL_SIZE / 2,

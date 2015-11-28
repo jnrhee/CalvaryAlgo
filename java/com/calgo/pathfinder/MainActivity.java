@@ -13,6 +13,8 @@ public class MainActivity extends AppCompatActivity {
     View decorView;
     int  uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
 
+    private CanvasView cv;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -24,6 +26,21 @@ public class MainActivity extends AppCompatActivity {
         decorView.setSystemUiVisibility(uiOptions);
     }
 
+    private void setCv() {
+        if (cv != null)
+            return;
+
+        cv = (CanvasView) findViewById(R.id.myCanvas);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        setCv();
+        if (cv != null)
+            cv.onPause();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -31,6 +48,10 @@ public class MainActivity extends AppCompatActivity {
         // Hide the status bar.
         decorView = getWindow().getDecorView();
         decorView.setSystemUiVisibility(uiOptions);
+
+        setCv();
+        if (cv != null)
+            cv.onResume();
     }
 
     @Override

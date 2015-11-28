@@ -1,12 +1,10 @@
 package com.calgo.pathfinder;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.os.Handler;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
@@ -23,10 +21,10 @@ public class CanvasView extends View {
     static final int VP_SCALE = 1;
 
 */
-    static final int MOUSE_STEP_IN_MS_INIT = 300;
+    static final int MOUSE_STEP_IN_MS_INIT = 450;
     static final int GRID_STEP_DIV = 20;
     static final boolean MOUSE_CENTER = false;
-    static final int VP_SCALE = 4;
+    static final int VP_SCALE = 3;
     /**/
 
     static final float SFACTOR = (float)40/GRID_STEP_DIV;
@@ -34,21 +32,17 @@ public class CanvasView extends View {
     static final float POINT_OVAL_SIZE = 7f*((float)1+SFACTOR*(float)Math.log((float)VP_SCALE));
     static final float TARGET_OVAL_SIZE = 12f*((float)1+SFACTOR*(float)Math.log((float)VP_SCALE));
 
+    static final int MOUSE = 0;
+    static final int PLAYER_1 = 1;
+
     public int width;
     public int height;
     public Paint p1Paint;
 
     private MainActivity context;
     private int gridStep;
-    private Bitmap mBitmap;
-    private Canvas mCanvas;
     private Path p1Path;
     private Paint linePaint;
-    private float mX, mY;
-
-    private float dGuideY1, dGuideY2, dGuideX;
-
-    private static final float TOLERANCE = 5;
 
     private PointGroup pg;
     private Point[] points;
@@ -60,21 +54,23 @@ public class CanvasView extends View {
     private Paint scorePaint;
     private Point p1;
 
-    private int mouseDir = -1;
-
     private boolean reInit = false;
-    private Handler handler = new Handler();
     private AlgoInterface[] pathAlgo;
 
     private int mouseWin = 0;
     private int p1Win = 0;
     private int mouse_step_in_ms = MOUSE_STEP_IN_MS_INIT;
+    private long mouseLastMovedTimeStamp;
 
-    private int lastWinnder;
+    private int lastWinnder = -1;
 
     private int mLevel = 2;
 
     private Button[] mButtons = new Button[4];
+    private Thread gameThread;
+    private Object mPauseLock = new Object();
+    private boolean mPaused;
+    private boolean mFinished;
 
     private void hideSystemUI() {
         this.setSystemUiVisibility(
@@ -123,20 +119,23 @@ public class CanvasView extends View {
         p1Paint.setAntiAlias(true);
         p1Paint.setColor(Color.BLUE);
         p1Paint.setStyle(Paint.Style.FILL);
-        p1Paint.setAlpha(255*60/100);
+        p1Paint.setAlpha(255 * 60 / 100);
 
         scorePaint = new Paint();
         scorePaint.setAntiAlias(true);
         scorePaint.setColor(Color.RED);
         scorePaint.setStyle(Paint.Style.STROKE);
-        scorePaint.setTextSize(20);
+        scorePaint.setTextSize(26);
 
-        handler.postDelayed(runnable, 100);
+        gameThread = new Thread(gameRunner);
     }
 
-    private void initMaze() {
-        pg = new PointGroup(0,0, width/gridStep, height/gridStep);
-        pg.addRandomPoints();
+    synchronized private void initMaze() {
+        if (lastWinnder != MOUSE) {
+            pg = new PointGroup(0, 0, width / gridStep, height / gridStep);
+            pg.addRandomPoints();
+        }
+
         points = pg.getAllPoints();
 
         mouse = new Point[mLevel];
@@ -144,23 +143,16 @@ public class CanvasView extends View {
         for (int i=0;i<mouse.length;i++)
             mouse[i] = pg.targetPoint;
 
-        p1    = pg.getStartingPoint();
-
-        dGuideY1 = height * 1/3;
-        dGuideY2 = height * 2/3;
-
-        dGuideX  = width * 1/3;
-
-        mouseDir = -1;
+        p1 = pg.getStartingPoint();
 
         inAnimation = false;
         lastDx = lastDy = ANIM_INIT_XY_VAL;
 
         p1Path.reset();
         prevP1 = null;
-        if (cov != null)
-            cov.invalidate();
-
+        lastWinnder = -1;
+        lastP1dir = -1;
+        
  //     pathAlgo = new DFSAlgo(mouse);
         pathAlgo = new AlgoInterface[mLevel];
 
@@ -170,52 +162,82 @@ public class CanvasView extends View {
       //  pathAlgo = new DijkAlgo(mouse);
     }
 
-    private Object sync = new Object();
+    private void checkMouseWithPlayerPoints() {
+        for (int i = 0; i < mouse.length; i++) {
+            if (mouse[i] == p1) {
+                reInit = true;
+                mouseWin++;
+                lastWinnder = MOUSE;
+                return;
+            }
+        }
+    }
 
-    private Runnable runnable = new Runnable() {
+    private Runnable gameRunner = new Runnable() {
         @Override
         public void run() {
-            if (reInit) {
-                reInit = false;
-                initMaze();
-            }
-
-            if (mouse != null) {
-                for (int i=0;i<mouse.length;i++) {
-                    Point prevMousePt = mouse[i];
-                    mouse[i] = pathAlgo[i].getNextMove();
-
-                    if (mouse[i] == p1 || prevMousePt == p1) {
-                        synchronized (sync) {
-                            if (!reInit) {
-                                reInit = true;
-                                mouseWin++;
-                                lastWinnder = 0;
-                            }
-                            handler.postDelayed(this, 2000);
-                        }
-                        break;
-                    }
+            while (!mFinished) {
+                if (reInit) {
+                    initMaze();
+                    reInit = false;
                 }
 
-                if (!reInit)
-                    handler.postDelayed(this, mouse_step_in_ms);
-                invalidate();
-            } else
-                handler.postDelayed(this, 500);
+                /* move player points */
+                moveP1();
+                checkMouseWithPlayerPoints();
+
+                /* move mouse points */
+                if (!reInit && (System.currentTimeMillis() - mouseLastMovedTimeStamp > mouse_step_in_ms) && mouse != null) {
+                    mouseLastMovedTimeStamp = System.currentTimeMillis();
+                    for (int i = 0; i < mouse.length; i++) {
+                        mouse[i] = pathAlgo[i].getNextMove();
+                    }
+                    checkMouseWithPlayerPoints();
+                }
+
+                /* stop for sometime when game ends */
+                if (reInit) {
+                    /* draw the last frames */
+                    reInit = false;
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    reInit = true;
+                }
+
+                /* if being paused */
+                synchronized (mPauseLock) {
+                    while (mPaused) {
+                        try {
+                            mPauseLock.wait();
+                        } catch (InterruptedException e) {
+                        }
+                    }
+                }
+            }
         }
     };
 
 
+    void onPause() {
+        synchronized (mPauseLock) {
+            mPaused = true;
+        }
+    }
+
+    public void onResume() {
+        synchronized (mPauseLock) {
+            mPaused = false;
+            mPauseLock.notifyAll();
+        }
+    }
 
     // override onSizeChanged
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-
-        // your Canvas will draw onto the defined Bitmap
-        mBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-        mCanvas = new Canvas(mBitmap);
         width = w;
         height = h;
 
@@ -224,9 +246,8 @@ public class CanvasView extends View {
             gridStep = h/GRID_STEP_DIV;
         }
 
-        mouse_step_in_ms = MOUSE_STEP_IN_MS_INIT;
-
-        initMaze();
+        reInit = true;
+        gameThread.start();
     }
 
     private void setupPostView() {
@@ -253,7 +274,7 @@ public class CanvasView extends View {
         mButtons[Point.RIGHT].setY(height - bSize * 2);
         mButtons[Point.RIGHT].setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
-                handleButton(Point.RIGHT);
+                captureButton(Point.RIGHT);
             }
         });
 
@@ -263,7 +284,7 @@ public class CanvasView extends View {
         mButtons[Point.LEFT].setRotation(180);
         mButtons[Point.LEFT].setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
-                handleButton(Point.LEFT);
+                captureButton(Point.LEFT);
             }
         });
 
@@ -273,7 +294,7 @@ public class CanvasView extends View {
         mButtons[Point.UP].setRotation(-90);
         mButtons[Point.UP].setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
-                handleButton(Point.UP);
+                captureButton(Point.UP);
             }
         });
 
@@ -283,12 +304,12 @@ public class CanvasView extends View {
         mButtons[Point.DOWN].setRotation(90);
         mButtons[Point.DOWN].setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
-                handleButton(Point.DOWN);
+                captureButton(Point.DOWN);
             }
         });
     }
 
-    private final int ANIM_FPS = 5;
+    private final int ANIM_FPS = 4;
     private final int ANIM_INIT_XY_VAL = -999999;
 
     private int lastDx = ANIM_INIT_XY_VAL;
@@ -301,8 +322,13 @@ public class CanvasView extends View {
     private CanvasOverlayView cov;
 
     @Override
-    protected void onDraw(Canvas canvas) {
+    synchronized protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+
+        if (reInit || p1 == null || mouse == null || points == null) {
+            invalidate();
+            return;
+        }
 
         setupPostView();
 
@@ -379,14 +405,11 @@ public class CanvasView extends View {
             dy = lastDy;
         }
 
-        if (points == null)
-            return;
-
         /* clear background */
-        if (reInit & !inAnimation) {
-            if (lastWinnder == 0)
+        if (!inAnimation && lastWinnder != -1) {
+            if (lastWinnder == MOUSE)
                 canvas.drawARGB(0xff, 0xff, 0, 0);
-            else if (lastWinnder == 1)
+            else if (lastWinnder == PLAYER_1)
                 canvas.drawARGB(0xff, 0x10, 0x10, 0xff);
         } else
             canvas.drawARGB(0xff, 0x84, 0xde, 0xff);
@@ -449,26 +472,28 @@ public class CanvasView extends View {
                 canvas.drawCircle(mx, my, MOUSE_OVAL_SIZE, p1Paint);
         }
 
-        canvas.drawText("P1:"+p1Win+"  Mouse:"+mouseWin, 15, 15, scorePaint);
+        canvas.drawText("Level = "+mLevel, 15, 20, scorePaint);
 
-        if (inAnimation)
-            invalidate();
-
-            /* handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    invalidate();
-                    }
-                }, 16); */
-
+        invalidate();
     }
 
     private Point prevP1;
 
     // when ACTION_DOWN start touch according to the x,y values
-    private void handleButton(int dir) {
+    private int lastP1dir = -1;
+    private void captureButton(int dir) {
+        lastP1dir = dir;
+    }
+
+    private void moveP1() {
         if (reInit)
             return;
+
+        if (lastP1dir == -1)
+            return;
+
+        int dir = lastP1dir;
+        lastP1dir = -1;
 
         prevP1 = p1;
         switch (dir) {
@@ -494,20 +519,13 @@ public class CanvasView extends View {
         }
 
         if (p1.mTarget) {
-            synchronized (sync) {
-                if (!reInit) {
-                    reInit = true;
-                    p1Win++;
-                    mLevel++;
-                    lastWinnder = 1;
-
-                    handler.removeCallbacks(runnable);
-                    handler.postDelayed(runnable, 2000);
-                }
+            if (!reInit) {
+                reInit = true;
+                p1Win++;
+                mLevel++;
+                lastWinnder = PLAYER_1;
             }
         }
-
-        invalidate();
     }
 
     //override the onTouchEvent
@@ -524,9 +542,6 @@ public class CanvasView extends View {
                 //updateScreen = true;
                 break;
         }
-
-        if (updateScreen)
-            invalidate();
 
         return true;
     }
