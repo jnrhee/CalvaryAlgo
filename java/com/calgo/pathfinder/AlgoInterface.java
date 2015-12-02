@@ -5,5 +5,6 @@ package com.calgo.pathfinder;
  */
 public interface AlgoInterface {
     Point getNextMove();
+    Point getNextMove(Point start, Point target);
     boolean isFound();
 }

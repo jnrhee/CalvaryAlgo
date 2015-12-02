@@ -144,4 +144,8 @@ class PointGroup {
     Point getStartingPoint() {
         return mAl.get(0);
     }
+
+    Point getEndingPoint() {
+        return mAl.get(mAl.size() - 1);
+    }
 }

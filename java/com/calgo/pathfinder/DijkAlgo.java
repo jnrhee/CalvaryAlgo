@@ -18,29 +18,45 @@ public class DijkAlgo implements AlgoInterface {
 
     List<Point> shortestPathList = null;
     Point nextMove;
+    private Point[] allPoints;
+    private Point startPoint;
+    private Point targetPoint;
 
-    DijkAlgo(Point startPoint) {
-        Point target;
-        nextMove = startPoint;
+
+    DijkAlgo(Point[] points, Point start, Point target) {
+
+        allPoints = points;
+        nextMove = startPoint =start;
+        targetPoint = target;
+
+    }
+
+    private void compute() {
+        for (Point p: allPoints) {
+            p.weight = 1;
+            p.minDistance = Integer.MAX_VALUE;
+            p.previousPoint = null;
+        }
         long startTime = System.currentTimeMillis();
         Log.d("Ernest","===================Start=======================================");
-        target = computePaths(startPoint);
-        Log.d("Ernest","Start:"+startPoint+"target:" +target);
+        computePaths(startPoint);
+        Log.d("Ernest", "Start:" + startPoint + "target:" + targetPoint);
 
-        shortestPathList =  getShortestPathTo(target);
+        shortestPathList =  getShortestPathTo(targetPoint);
+        //remmove fist elemement. same as current location.
+        shortestPathList.remove(0);
         for (Point p: shortestPathList) {
-        //    Log.d("Ernest", String.format("x = %d y = %d", p.x, p.y));
+            Log.d("Ernest", String.format("x = %d y = %d", p.x, p.y));
         }
         long stopTime = System.currentTimeMillis();
         long elapsedTime = stopTime - startTime;
 
         Log.d("Ernest", "==End: elapsed time is : "+ elapsedTime /1000.0+" secs");
 
-    }
 
+    }
     @Override
     public Point getNextMove() {
-
         Iterator<Point> iter = shortestPathList.listIterator();
         if (iter.hasNext()) {
             nextMove = iter.next();
@@ -50,6 +66,22 @@ public class DijkAlgo implements AlgoInterface {
     }
 
     @Override
+    public Point getNextMove(Point start, Point target) {
+
+        startPoint = start;
+        targetPoint = target;
+        compute();
+        Iterator<Point> iter = shortestPathList.listIterator();
+
+        if (iter.hasNext()) {
+            nextMove = iter.next();
+            iter.remove();
+        }
+        Log.d("Ernest","DjkAlgo next move is :" +nextMove);
+
+        return nextMove;
+    }
+    @Override
     public boolean isFound() {
 
         if (shortestPathList.isEmpty())
@@ -58,8 +90,7 @@ public class DijkAlgo implements AlgoInterface {
             return false;
     }
 
-    Point computePaths(Point source) {
-        Point target = null;
+    void computePaths(Point source) {
         source.minDistance = 0;
         //visit each vertex u, always visiting vertex with smallest minDistance first
         // Visit each edge exiting u
@@ -68,9 +99,6 @@ public class DijkAlgo implements AlgoInterface {
 
         while (!pointQueue.isEmpty()) {
             Point currentPoint = pointQueue.poll();
-
-            if (currentPoint.mTarget == true)
-                target = currentPoint;
 
             // Visit each edge exiting u
             for (Point nextPoint : currentPoint.getNeighbors()) {
@@ -85,9 +113,6 @@ public class DijkAlgo implements AlgoInterface {
                 }
             }
         }
-
-        return target;
-
     }
 
     public static List<Point> getShortestPathTo(Point target)

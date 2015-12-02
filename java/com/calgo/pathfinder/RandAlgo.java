@@ -39,6 +39,30 @@ public class RandAlgo implements AlgoInterface {
     }
 
     @Override
+    public Point getNextMove(Point start, Point p1) {
+        Point nextMove = null;
+
+        // if can't go in the same direciton, move to the next random dir
+        boolean found = false;
+
+        int dir;
+        if (curPoint.isEnd() == 1 && mouseDir != -1) {
+            dir = PointGroup.getOppositeDir(mouseDir);
+            nextMove = tryMoveMouse(dir);
+
+        } else {
+            do {
+                dir = PointGroup.randomDir();
+                if (!PointGroup.isOppositeDir(mouseDir, dir)) {
+                    nextMove = tryMoveMouse(dir);
+                }
+            } while (nextMove == null);
+        }
+        mouseDir = dir;
+        curPoint = nextMove;
+        return nextMove;
+    }
+    @Override
     public boolean isFound() {
         if (curPoint == null)
             return false;

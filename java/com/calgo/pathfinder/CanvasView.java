@@ -64,7 +64,7 @@ public class CanvasView extends View {
 
     private int lastWinnder = -1;
 
-    private int mLevel = 2;
+    private int mLevel = 4;
 
     private Button[] mButtons = new Button[4];
     private Thread gameThread;
@@ -156,10 +156,15 @@ public class CanvasView extends View {
  //     pathAlgo = new DFSAlgo(mouse);
         pathAlgo = new AlgoInterface[mLevel];
 
-        for (int i=0;i<mouse.length;i++) {
+
+
+        pathAlgo[0] = new DijkAlgo(points, mouse[0],p1);
+        if (mouse.length >= 2)
+           pathAlgo[1] = new ChaseAlgo(points, mouse[1],p1);
+        for (int i=2;i<mouse.length ;i++) {
             pathAlgo[i] = new RandAlgo(mouse[i]);
         }
-      //  pathAlgo = new DijkAlgo(mouse);
+
     }
 
     private void checkMouseWithPlayerPoints() {
@@ -190,7 +195,7 @@ public class CanvasView extends View {
                 if (!reInit && (System.currentTimeMillis() - mouseLastMovedTimeStamp > mouse_step_in_ms) && mouse != null) {
                     mouseLastMovedTimeStamp = System.currentTimeMillis();
                     for (int i = 0; i < mouse.length; i++) {
-                        mouse[i] = pathAlgo[i].getNextMove();
+                        mouse[i] = pathAlgo[i].getNextMove(mouse[i],p1);
                     }
                     checkMouseWithPlayerPoints();
                 }

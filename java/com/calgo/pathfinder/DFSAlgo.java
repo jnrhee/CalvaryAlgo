@@ -37,6 +37,23 @@ public class DFSAlgo implements AlgoInterface {
     }
 
     @Override
+    public Point getNextMove(Point start, Point p1) {
+        Point returnMove;
+
+        Point nextMouse = getAdjUnvisitedPoint((Point)(theStack.peek()));
+        if (nextMouse == null) {
+            returnMove = (Point) theStack.pop();
+        } else {
+            returnMove = nextMouse;
+            returnMove.setVisit(true);
+
+            theStack.push(returnMove);
+        }
+        curPoint = returnMove;
+        return returnMove;
+    }
+
+    @Override
     public boolean isFound() {
         if (curPoint == null)
             return false;
